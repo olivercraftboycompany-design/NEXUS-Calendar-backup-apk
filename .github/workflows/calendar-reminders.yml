@@ -1,0 +1,110 @@
+name: Calendar reminders
+
+# How this stays on time: GitHub's own cron is best-effort (it can skip for hours),
+# so each run checks once ("check"), then watches for ~55 min checking every minute ("watch"),
+# then starts the next run itself (workflow_dispatch with GITHUB_TOKEN). The cron below is only
+# a backstop that restarts the chain if a hand-off ever fails.
+on:
+  schedule:
+    - cron: '3,18,33,48 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write   # start the next run + tidy old state caches
+
+concurrency:
+  group: calendar-reminders
+  cancel-in-progress: false
+
+env:
+  NTFY_TOPIC: nxcal-0a79e7056731689696f5798e
+  STATE_DIR: .state
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/reminders
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Restore state
+        uses: actions/cache/restore@v4
+        with:
+          path: .state
+          key: nxcal-state-${{ github.run_id }}
+          restore-keys: nxcal-state-
+      - name: Install web-push
+        working-directory: .github/reminders
+        run: npm install --no-audit --no-fund --loglevel=error
+      - name: Check reminders and send notifications
+        run: node .github/reminders/send.mjs
+        env:
+          VAPID_PUBLIC: ${{ secrets.VAPID_PUBLIC }}
+          VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
+          BOX_PRIVATE: ${{ secrets.BOX_PRIVATE }}
+      - name: Save state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .state
+          key: nxcal-state-${{ github.run_id }}-${{ github.run_attempt }}-check
+
+  watch:
+    needs: check
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/reminders
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Restore state
+        uses: actions/cache/restore@v4
+        with:
+          path: .state
+          key: nxcal-state-${{ github.run_id }}-${{ github.run_attempt }}-check
+          restore-keys: nxcal-state-
+      - name: Install web-push
+        working-directory: .github/reminders
+        run: npm install --no-audit --no-fund --loglevel=error
+      - name: Watch reminders (one pass a minute)
+        continue-on-error: true
+        timeout-minutes: 58
+        run: node .github/reminders/send.mjs
+        env:
+          VAPID_PUBLIC: ${{ secrets.VAPID_PUBLIC }}
+          VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
+          BOX_PRIVATE: ${{ secrets.BOX_PRIVATE }}
+          LOOP_MINUTES: '55'
+      - name: Save state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .state
+          key: nxcal-state-${{ github.run_id }}-${{ github.run_attempt }}-watch
+      - name: Start the next run
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for i in 1 2 3 4 5; do
+            gh workflow run calendar-reminders.yml -R "$GITHUB_REPOSITORY" --ref "${GITHUB_REF_NAME:-main}" && echo "next run requested" && exit 0
+            sleep $((i * 10))
+          done
+          echo "could not start the next run; the cron backstop will restart it"; exit 1
+      - name: Tidy old state caches
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh cache list -R "$GITHUB_REPOSITORY" --key nxcal-state- --sort created_at --order desc --limit 100 --json id --jq '.[4:][].id' \
+            | xargs -r -n1 gh cache delete -R "$GITHUB_REPOSITORY" || true

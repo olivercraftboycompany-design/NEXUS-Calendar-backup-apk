@@ -1,0 +1,8 @@
+{
+  "name": "nxcal-reminders",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "web-push": "3.6.7"
+  }
+}

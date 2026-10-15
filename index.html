@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#09090b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Calendar">
+<title>NEXUS Calendar</title>
+<meta name="description" content="NEXUS Calendar: school, tests, homework, sports and church in one neon calendar. Installable and works offline.">
+<meta property="og:title" content="NEXUS Calendar">
+<meta property="og:description" content="Month, week and day views, quick add, homework checklist. Installs like an app and works offline.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="bg-glow" aria-hidden="true"></div>
+<div id="offlineBar" class="offline-bar hidden">📴 Offline · everything still works, it's all saved on your phone</div>
+
+<header class="topbar">
+  <a href="./" class="brand" aria-label="NEXUS Calendar home">
+    <img src="icons/favicon-32.png" width="28" height="28" alt="">
+    <span class="brand-name">NEXUS</span><span class="brand-pill">CALENDAR</span>
+  </a>
+  <div class="top-actions">
+    <button id="installBtn" class="install-btn hidden" type="button">⬇ Install app</button>
+    <button id="searchBtn" class="icon-btn" type="button" aria-label="Search events" title="Search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+    <button id="settingsBtn" class="icon-btn" type="button" aria-label="Settings and backup" title="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  </div>
+</header>
+
+<main class="wrap">
+  <form id="quickForm" class="quick card" autocomplete="off">
+    <label for="quickInput" class="sr-only">Quick add an event</label>
+    <span class="quick-bolt" aria-hidden="true">⚡</span>
+    <input id="quickInput" type="text" enterkeyhint="done" placeholder='Quick add: "math test fri 9am"'>
+    <button type="submit" class="quick-go" aria-label="Add">Add</button>
+  </form>
+  <div id="quickPreview" class="quick-preview hidden" aria-live="polite"></div>
+
+  <section id="nextUp" class="card next-up" aria-label="Next up"></section>
+
+  <section class="card cal-card">
+    <div class="cal-toolbar">
+      <button id="todayBtn" class="chip-btn today-btn" type="button">Today</button>
+      <div class="nav">
+        <button id="prevBtn" class="icon-btn sm" type="button" aria-label="Previous"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+        <h1 id="calTitle" class="cal-title">&nbsp;</h1>
+        <button id="nextBtn" class="icon-btn sm" type="button" aria-label="Next"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+      </div>
+    </div>
+    <div class="seg" role="tablist" aria-label="Calendar view">
+      <button type="button" role="tab" data-view="month">Month</button>
+      <button type="button" role="tab" data-view="week">Week</button>
+      <button type="button" role="tab" data-view="day">Day</button>
+      <button type="button" role="tab" data-view="agenda">List</button>
+    </div>
+    <div id="view" class="view"></div>
+  </section>
+
+  <section id="dayPanel" class="card day-panel" aria-label="Selected day"></section>
+
+  <section id="hwCard" class="card hw-card" aria-label="Homework checklist"></section>
+
+  <p class="foot">Saved on this phone. Back it up in ⚙️ Settings.</p>
+</main>
+
+<button id="fab" class="fab" type="button" aria-label="Add event">+</button>
+
+<div id="sheetWrap" class="sheet-wrap hidden" aria-hidden="true">
+  <div class="sheet-backdrop" data-close></div>
+  <div id="sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"></div>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<input id="importFile" type="file" accept="application/json,.json" class="hidden">
+
+<script src="push-box.js"></script>
+<script src="reminders.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
